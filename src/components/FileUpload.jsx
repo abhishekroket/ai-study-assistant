@@ -1,12 +1,12 @@
 import { useDropzone } from "react-dropzone";
 
-import mammoth from "mammoth";
+import { FiPlus } from "react-icons/fi";
 
 function FileUpload({
-  setUploadedText,
+  setUploadedFile,
 }) {
 
-  const onDrop = async (
+  const onDrop = (
     acceptedFiles
   ) => {
 
@@ -15,65 +15,56 @@ function FileUpload({
 
     if (!file) return;
 
-    // TXT
+    // ONLY ONE PDF
     if (
-      file.type ===
-      "text/plain"
+      file.type !==
+      "application/pdf"
     ) {
-
-      const text =
-        await file.text();
-
-      setUploadedText(text);
-    }
-
-    // DOCX
-    else if (
-      file.name.endsWith(
-        ".docx"
-      )
-    ) {
-
-      const arrayBuffer =
-        await file.arrayBuffer();
-
-      const result =
-        await mammoth.extractRawText({
-          arrayBuffer,
-        });
-
-      setUploadedText(
-        result.value
-      );
-    }
-
-    else {
 
       alert(
-        "Only TXT and DOCX supported"
+        "Only PDF file allowed"
       );
+
+      return;
     }
+
+    // SAVE PDF
+    setUploadedFile(file);
+
+    alert(
+      `${file.name} uploaded`
+    );
   };
 
   const {
     getRootProps,
     getInputProps,
   } = useDropzone({
+
     onDrop,
+
+    multiple: false,
+
+    accept: {
+      "application/pdf": [
+        ".pdf",
+      ],
+    },
+
   });
 
   return (
 
     <div
       {...getRootProps()}
-      className="cursor-pointer text-gray-400 hover:text-white transition text-2xl"
+      className="text-xl text-gray-400 hover:text-white cursor-pointer"
     >
 
       <input
         {...getInputProps()}
       />
 
-      +
+      <FiPlus />
 
     </div>
   );

@@ -1,12 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 
 import Sidebar from "./components/Sidebar";
-
 import ChatMessage from "./components/ChatMessage";
-
 import FileUpload from "./components/FileUpload";
 
 import { askGroqAI } from "./services/aiService";
+
+import {
+  FiMenu,
+  FiMic,
+  FiSend,
+} from "react-icons/fi";
 
 function App() {
 
@@ -16,69 +20,46 @@ function App() {
   const [messages, setMessages] =
     useState([]);
 
-  const [loading, setLoading] =
-    useState(false);
-
-  const [darkMode, setDarkMode] =
-    useState(true);
+  const [chatHistory, setChatHistory] =
+    useState([]);
 
   const [sidebarOpen, setSidebarOpen] =
     useState(true);
 
-  const [uploadedText, setUploadedText] =
-    useState("");
+  const [loading, setLoading] =
+    useState(false);
 
-  const chatEndRef = useRef(null);
-
-  // LOAD CHAT HISTORY
-  useEffect(() => {
-
-    const savedChats =
-      JSON.parse(
-        localStorage.getItem(
-          "chatHistory"
-        )
-      ) || [];
-
-    setMessages(savedChats);
-
-  }, []);
-
-  // SAVE CHAT HISTORY
-  useEffect(() => {
-
-    localStorage.setItem(
-      "chatHistory",
-      JSON.stringify(messages)
-    );
-
-  }, [messages]);
-
-  // AUTO SCROLL
-  useEffect(() => {
-
-    chatEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
-
-  }, [messages]);
+  const [uploadedFile, setUploadedFile] =
+  useState(null);
 
   // ASK AI
-  const askAI = async (
-    customPrompt = question
-  ) => {
+  const askAI = async () => {
 
-    if (!customPrompt.trim()) return;
+    if (!question.trim())
+      return;
 
     const userMessage = {
       role: "user",
-      content: customPrompt,
+      content: question,
     };
 
+    // SHOW USER MESSAGE
     setMessages((prev) => [
       ...prev,
       userMessage,
     ]);
+
+    // SAVE HISTORY
+    setChatHistory((prev) => [
+
+      question,
+
+      ...prev,
+
+    ]);
+
+    const currentQuestion =
+      question;
 
     setQuestion("");
 
@@ -87,13 +68,16 @@ function App() {
     try {
 
       const result =
-        await askGroqAI(customPrompt);
+        await askGroqAI(
+          currentQuestion
+        );
 
       const aiMessage = {
         role: "assistant",
         content: result,
       };
 
+      // SHOW AI MESSAGE
       setMessages((prev) => [
         ...prev,
         aiMessage,
@@ -116,17 +100,23 @@ function App() {
     setLoading(false);
   };
 
-  // NEW CHAT
-  const newChat = () => {
+  // ENTER KEY
+  const handleKeyDown = (
+    e
+  ) => {
 
-    setMessages([]);
+    if (
+      e.key === "Enter" &&
+      !e.shiftKey
+    ) {
 
-    localStorage.removeItem(
-      "chatHistory"
-    );
+      e.preventDefault();
+
+      askAI();
+    }
   };
 
-  // VOICE INPUT
+  // MIC
   const startVoiceInput = () => {
 
     const SpeechRecognition =
@@ -161,229 +151,160 @@ function App() {
     };
   };
 
+  // NEW CHAT
+  const newChat = () => {
+
+    // ONLY CLEAR SCREEN
+    setMessages([]);
+
+    setQuestion("");
+  };
+
   return (
 
-    <div
-      className={
-        darkMode
-          ? "bg-[#212121] text-white"
-          : "bg-white text-black"
-      }
-    >
+    <div className="flex h-screen bg-[#212121] text-white overflow-hidden">
 
-      <div className="flex h-screen overflow-hidden">
+      {/* SIDEBAR */}
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        chatHistory={chatHistory}
+        newChat={newChat}
+      />
 
-        {/* SIDEBAR */}
-        <Sidebar
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={
-            setSidebarOpen
-          }
-          darkMode={darkMode}
-          setDarkMode={
-            setDarkMode
-          }
-          messages={messages}
-          newChat={newChat}
-        />
+      {/* MAIN */}
+      <div className="flex-1 flex flex-col">
 
-        {/* MAIN */}
-        <div className="flex-1 flex flex-col">
+        {/* TOPBAR */}
+        <div className="flex items-center gap-4 p-4 border-b border-gray-700">
 
-          {/* TOP BAR */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+          <button
+            onClick={() =>
+              setSidebarOpen(
+                !sidebarOpen
+              )
+            }
+            className="text-2xl"
+          >
+            <FiMenu />
+          </button>
 
-            <button
-              onClick={() =>
-                setSidebarOpen(
-                  !sidebarOpen
-                )
-              }
-              className="text-2xl"
-            >
-              ☰
-            </button>
+          <h1 className="text-xl font-bold">
 
-            <h1 className="text-lg md:text-2xl font-bold">
+            AI Study Assistant
 
-              AI Study Assistant
+          </h1>
 
-            </h1>
+        </div>
 
-            <button
-              onClick={() =>
-                setDarkMode(
-                  !darkMode
-                )
-              }
-              className="bg-[#2f2f2f] px-3 py-1 rounded-xl border border-gray-700"
-            >
-              {darkMode
-                ? "☀"
-                : "🌙"}
-            </button>
+        {/* CHAT AREA */}
+        <div className="flex-1 overflow-y-auto p-6">
 
-          </div>
+          <div className="max-w-4xl mx-auto space-y-6">
 
-          {/* CHAT AREA */}
-          <div className="flex-1 overflow-y-auto px-4 py-6">
+            {messages.length ===
+              0 && (
 
-            {messages.length === 0 && (
+              <div className="text-center text-gray-400 mt-32">
 
-              <div className="h-full flex items-center justify-center text-center text-gray-400">
+                <h2 className="text-4xl font-bold mb-4">
 
-                <div>
+                  How can I help you?
 
-                  <h2 className="text-4xl font-bold mb-4">
+                </h2>
 
-                    How can I help you?
+                <p>
 
-                  </h2>
+                  Ask anything using AI.
 
-                  <p className="max-w-xl">
-
-                    Ask questions,
-                    upload notes,
-                    summarize PDFs,
-                    generate quizzes,
-                    and more.
-
-                  </p>
-
-                </div>
+                </p>
 
               </div>
 
             )}
 
-            {/* CHAT */}
-            <div className="max-w-4xl mx-auto space-y-6">
+            {/* CHAT MESSAGES */}
+            {messages.map(
+              (
+                msg,
+                index
+              ) => (
 
-              {messages.map(
-                (
-                  msg,
-                  index
-                ) => (
-
-                  <ChatMessage
-                    key={index}
-                    role={msg.role}
-                    content={
-                      msg.content
-                    }
-                  />
-
-                )
-              )}
-
-              {/* LOADING */}
-              {loading && (
-
-                <div className="flex justify-start">
-
-                  <div className="bg-[#2f2f2f] px-5 py-4 rounded-3xl border border-gray-700">
-
-                    AI is thinking...
-
-                  </div>
-
-                </div>
-
-              )}
-
-              <div ref={chatEndRef} />
-
-            </div>
-
-          </div>
-
-          {/* CHATGPT STYLE INPUT */}
-          <div className="p-4 bg-[#212121] border-t border-gray-800">
-
-            <div className="max-w-4xl mx-auto">
-
-              <div className="flex items-end gap-3 bg-[#2f2f2f] border border-gray-700 rounded-3xl px-4 py-3 shadow-xl">
-
-                {/* FILE */}
-                <FileUpload
-                  setUploadedText={
-                    setUploadedText
+                <ChatMessage
+                  key={index}
+                  role={msg.role}
+                  content={
+                    msg.content
                   }
                 />
 
-                {/* INPUT */}
-                <textarea
-                  value={question}
+              )
+            )}
 
-                  onChange={(e) =>
-                    setQuestion(
-                      e.target.value
-                    )
-                  }
+            {/* LOADING */}
+            {loading && (
 
-                  onKeyDown={(e) => {
+              <div className="bg-[#2f2f2f] px-5 py-4 rounded-3xl w-fit">
 
-                    if (
-                      e.key ===
-                        "Enter" &&
-                      !e.shiftKey
-                    ) {
-
-                      e.preventDefault();
-
-                      askAI(
-                        uploadedText
-                          ? `${question}
-
-Uploaded Notes:
-${uploadedText}`
-                          : question
-                      );
-                    }
-                  }}
-
-                  placeholder="Ask anything..."
-
-                  rows={1}
-
-                  className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none resize-none max-h-40 py-2"
-                />
-
-                {/* MIC */}
-                <button
-                  onClick={
-                    startVoiceInput
-                  }
-                  className="text-gray-400 hover:text-white text-xl transition"
-                >
-                  🎤
-                </button>
-
-                {/* SEND */}
-                <button
-                  onClick={() =>
-                    askAI(
-                      uploadedText
-                        ? `${question}
-
-Uploaded Notes:
-${uploadedText}`
-                        : question
-                    )
-                  }
-                  className="bg-white text-black w-10 h-10 rounded-full flex items-center justify-center font-bold hover:scale-105 transition"
-                >
-                  ↑
-                </button>
+                AI is thinking...
 
               </div>
 
-              {/* FOOTER */}
-              <p className="text-center text-xs text-gray-500 mt-2">
+            )}
 
-                AI Study Assistant can make mistakes. Verify important information.
+          </div>
 
-              </p>
+        </div>
+
+        {/* INPUT */}
+        <div className="p-4 border-t border-gray-700">
+
+          <div className="max-w-4xl mx-auto">
+
+            <div className="flex items-center gap-3 bg-[#2f2f2f] border border-gray-700 rounded-3xl px-4 py-3">
+
+              {/* FILE */}
+              <FileUpload
+                setUploadedFile={setUploadedFile}
+              />
+
+              {/* INPUT */}
+              <textarea
+                value={question}
+
+                onChange={(e) =>
+                  setQuestion(
+                    e.target.value
+                  )
+                }
+
+                onKeyDown={
+                  handleKeyDown
+                }
+
+                placeholder="Ask anything..."
+
+                rows={1}
+
+                className="flex-1 bg-transparent outline-none resize-none text-white placeholder-gray-400"
+              />
+
+              {/* MIC */}
+              <button
+                onClick={
+                  startVoiceInput
+                }
+                className="text-xl text-gray-400 hover:text-white"
+              >
+                <FiMic />
+              </button>
+
+              {/* SEND */}
+              <button
+                onClick={askAI}
+                className="bg-white text-black w-10 h-10 rounded-full flex items-center justify-center"
+              >
+                <FiSend />
+              </button>
 
             </div>
 
