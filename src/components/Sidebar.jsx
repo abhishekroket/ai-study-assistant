@@ -19,9 +19,9 @@ function Sidebar({
         {/* NEW CHAT */}
         <button
           onClick={newChat}
-          className="w-full bg-[#2f2f2f] hover:bg-[#3a3a3a] py-3 rounded-xl mb-5"
+          className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl mb-5 font-medium transition"
         >
-          + New Chat
+        + New Chat
         </button>
 
         {/* HISTORY */}
